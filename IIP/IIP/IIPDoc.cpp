@@ -218,7 +218,7 @@ void CIIPDoc::OnArithmetic()
 		for (j = 0; j < width; j++) {
 
 			//덧셈
-			temp = m_InImage[(i*width) + j] + 40;
+			temp = m_InImage[(i*width) + j] + 50;
 
 			//뺄셈
 			//temp = m_InImage[(i*width) + j] - 40;
