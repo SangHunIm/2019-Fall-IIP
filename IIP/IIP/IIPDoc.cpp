@@ -22,6 +22,7 @@
 IMPLEMENT_DYNCREATE(CIIPDoc, CDocument)
 
 BEGIN_MESSAGE_MAP(CIIPDoc, CDocument)
+	ON_COMMAND(ID_ARITHMETIC, &CIIPDoc::OnArithmetic)
 END_MESSAGE_MAP()
 
 
@@ -30,11 +31,18 @@ END_MESSAGE_MAP()
 CIIPDoc::CIIPDoc() noexcept
 {
 	// TODO: 여기에 일회성 생성 코드를 추가합니다.
-
+	m_InImage = NULL;
+	m_OutImage = NULL;
+	height = 0;
+	width = 0;
 }
 
 CIIPDoc::~CIIPDoc()
 {
+	if (m_InImage != NULL)
+		delete(m_InImage);
+	if (m_OutImage != NULL)
+		delete(m_OutImage);
 }
 
 BOOL CIIPDoc::OnNewDocument()
@@ -58,10 +66,72 @@ void CIIPDoc::Serialize(CArchive& ar)
 	if (ar.IsStoring())
 	{
 		// TODO: 여기에 저장 코드를 추가합니다.
+		if (width != 0 && height != 0)
+		{
+			ar.Write(m_OutImage, width*height);
+		}
 	}
+	
 	else
 	{
 		// TODO: 여기에 로딩 코드를 추가합니다.
+		CString strTemp = ar.m_strFileName.Right(3);
+		// 영상파일이 RAW로 저장되어 있는 경우
+		if (toupper(strTemp[0]) == 'B' &&
+			toupper(strTemp[1]) == 'M' &&
+			toupper(strTemp[2]) == 'P')
+		{
+			// 입력할 화일의 포인트를 가져옴.
+			CImage m_Image;
+			m_Image.Load(ar.m_strFileName);
+			width = m_Image.GetWidth();
+			height = m_Image.GetHeight();
+			m_InImage = (unsigned char*)malloc(sizeof(unsigned char)* width * height);
+			m_OutImage = (unsigned char*)malloc(sizeof(unsigned char) * width * height);
+			int ws = width * (m_Image.GetBPP() / 8);
+			unsigned char *m_tmpImage = (unsigned char*)malloc(sizeof(unsigned char) * ws * height);
+			if (m_Image.GetBPP() == 1)
+			{
+				AfxMessageBox((LPCTSTR)"읽을 수 있는 파일 형식이 아닙니다.");
+				return;
+			}
+			else if (m_Image.GetBPP() == 8)
+			{
+				for (int y = 0; y < height; y++) {
+					BYTE * srcImg = NULL;
+					;
+					srcImg = (BYTE *)
+						m_Image.GetPixelAddress(0, y);
+					memcpy(&m_InImage[y * ws], srcImg, ws);
+				}
+			}
+			else if (m_Image.GetBPP() == 24)
+			{
+				for (int y = 0; y < height; y++) {
+					BYTE * srcImg = NULL;
+					;
+					srcImg = (BYTE *)
+						m_Image.GetPixelAddress(0, y);
+					memcpy(&m_tmpImage[y * ws], srcImg,
+						ws);
+				}
+				int iter = 0;
+				for (int y = 0; y < height; y++)
+				{
+					for (int x = 0; x < width; x++)
+					{
+						m_InImage[(y * width) + x] = (m_tmpImage[iter] * 0.21 + m_tmpImage[iter + 1] * 0.72 + m_tmpImage[iter + 2] * 0.07);
+						iter += 3;
+					}
+				}
+			}
+		}
+		// 입력파일이 BMP파일이 아닌경우
+		else
+		{
+			AfxMessageBox((LPCTSTR)"읽을 수 있는 파일 형식이 아닙니다.");
+			return;
+		}
 	}
 }
 
@@ -135,3 +205,32 @@ void CIIPDoc::Dump(CDumpContext& dc) const
 
 
 // CIIPDoc 명령
+
+
+void CIIPDoc::OnArithmetic()
+{
+	// TODO: 여기에 명령 처리기 코드를 추가합니다.
+	int i, j; // 인덱스 처리릉 위한 변수
+	int temp; // 임시 데이터 저장을 위한 변수
+	for (i = 0; i < height; i++) {
+		for (j = 0; j < width; j++) {
+
+			//덧셈
+			temp = m_InImage[(i*width) + j] + 40;
+
+			//뺄셈
+			//temp = m_InImage[(i*width) + j] - 40;
+
+			//곱셈
+			//temp = m_InImage[(i*width) + j] * 2;
+
+			//나눗셈
+			//temp = m_InImage[(i*width) + j] / 2;
+
+			if (temp > 255) m_OutImage[(i*width) + j] = 255;
+			else if (temp < 0) m_OutImage[(i*width) + j] = 0;
+			else m_OutImage[(i*width) + j] = (unsigned char)temp;
+		}
+	}
+	UpdateAllViews(NULL);
+}			

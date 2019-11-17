@@ -52,7 +52,7 @@ BOOL CIIPView::PreCreateWindow(CREATESTRUCT& cs)
 
 // CIIPView 그리기
 
-void CIIPView::OnDraw(CDC* /*pDC*/)
+void CIIPView::OnDraw(CDC* pDC)
 {
 	CIIPDoc* pDoc = GetDocument();
 	ASSERT_VALID(pDoc);
@@ -60,6 +60,16 @@ void CIIPView::OnDraw(CDC* /*pDC*/)
 		return;
 
 	// TODO: 여기에 원시 데이터에 대한 그리기 코드를 추가합니다.
+	for (unsigned int i = 0; i < pDoc->height; i++)
+	{
+		for (unsigned int j = 0; j < pDoc->width; j++)
+		{
+			unsigned char InVal = pDoc->m_InImage[(i * pDoc->width) + j];
+			unsigned char OutVal = pDoc->m_OutImage[(i * pDoc->width) + j];
+			pDC->SetPixel(j, i, RGB(InVal, InVal, InVal));
+			pDC->SetPixel(j + pDoc->width + 50, i, RGB(OutVal, OutVal, OutVal));
+		}
+	}
 }
 
 
