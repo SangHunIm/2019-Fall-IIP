@@ -227,9 +227,12 @@ void CIIPDoc::OnArithmetic()
 			//나눗셈
 			//temp = m_InImage[(i*width) + j] / 2;
 
-			if (temp > 255) m_OutImage[(i*width) + j] = 255;
-			else if (temp < 0) m_OutImage[(i*width) + j] = 0;
-			else m_OutImage[(i*width) + j] = (unsigned char)temp;
+			if (temp > 255) 
+				m_OutImage[(i*width) + j] = 255;
+			else if (temp < 0) 
+				m_OutImage[(i*width) + j] = 0;
+			else 
+				m_OutImage[(i*width) + j] = (unsigned char)temp;
 		}
 	}
 	UpdateAllViews(NULL);

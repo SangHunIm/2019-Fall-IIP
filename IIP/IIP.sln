@@ -3,7 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.28307.852
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "IIP", "IIP\IIP.vcxproj", "{2FB5EF29-594A-4EEB-B4F0-D3E11ABC355C}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "IIP_MFC", "IIP\IIP.vcxproj", "{2FB5EF29-594A-4EEB-B4F0-D3E11ABC355C}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "IIP_OpenCV_HW_1", "IIP_OpenCV_HW_1\IIP_OpenCV_HW_1.vcxproj", "{47AD629B-BF2D-4C94-8898-A47D0D7F1650}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +23,14 @@ Global
 		{2FB5EF29-594A-4EEB-B4F0-D3E11ABC355C}.Release|x64.Build.0 = Release|x64
 		{2FB5EF29-594A-4EEB-B4F0-D3E11ABC355C}.Release|x86.ActiveCfg = Release|Win32
 		{2FB5EF29-594A-4EEB-B4F0-D3E11ABC355C}.Release|x86.Build.0 = Release|Win32
+		{47AD629B-BF2D-4C94-8898-A47D0D7F1650}.Debug|x64.ActiveCfg = Debug|x64
+		{47AD629B-BF2D-4C94-8898-A47D0D7F1650}.Debug|x64.Build.0 = Debug|x64
+		{47AD629B-BF2D-4C94-8898-A47D0D7F1650}.Debug|x86.ActiveCfg = Debug|Win32
+		{47AD629B-BF2D-4C94-8898-A47D0D7F1650}.Debug|x86.Build.0 = Debug|Win32
+		{47AD629B-BF2D-4C94-8898-A47D0D7F1650}.Release|x64.ActiveCfg = Release|x64
+		{47AD629B-BF2D-4C94-8898-A47D0D7F1650}.Release|x64.Build.0 = Release|x64
+		{47AD629B-BF2D-4C94-8898-A47D0D7F1650}.Release|x86.ActiveCfg = Release|Win32
+		{47AD629B-BF2D-4C94-8898-A47D0D7F1650}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
