@@ -23,6 +23,8 @@ IMPLEMENT_DYNCREATE(CIIPDoc, CDocument)
 
 BEGIN_MESSAGE_MAP(CIIPDoc, CDocument)
 	ON_COMMAND(ID_ARITHMETIC, &CIIPDoc::OnArithmetic)
+	ON_COMMAND(ID_Histogram, &CIIPDoc::OnHistogram)
+	ON_COMMAND(ID_Binarization, &CIIPDoc::OnBinarization)
 END_MESSAGE_MAP()
 
 
@@ -237,3 +239,52 @@ void CIIPDoc::OnArithmetic()
 	}
 	UpdateAllViews(NULL);
 }			
+
+
+void CIIPDoc::OnHistogram()
+{
+	// TODO: 여기에 명령 처리기 코드를 추가합니다.
+	int Hist[256];
+	int MaxVal = 0;
+	int i, j;
+
+	memset(Hist, 0, sizeof(int) * 256);
+
+	for (i = 0; i < height; i++) {
+		for (j = 0; j < width; j++) {
+			Hist[m_InImage[(i*width) + j]]++;
+			if (MaxVal < Hist[m_InImage[(i*width) + j]])
+				MaxVal = Hist[m_InImage[(i*width) + j]];
+		}
+	}
+
+	m_OutImage = (unsigned char*)malloc(sizeof(char) * height * width);
+	memset(m_OutImage, 255, sizeof(unsigned char) * height * width);
+	float w_ratio = (float)255 / (width - 1);
+	float h_ratio = (float)(height - 1) / MaxVal;
+	for (i = 0; i < width; i++) {
+		int idx = i * w_ratio;
+		int value = Hist[idx] * h_ratio;
+		for (j = 0; j < value; j++)
+			m_OutImage[(height - j - 1)*width + i] = 0;
+	}
+	UpdateAllViews(NULL);
+}
+
+
+void CIIPDoc::OnBinarization()
+{
+	// TODO: 여기에 명령 처리기 코드를 추가합니다.
+	m_Threshold = 130;
+	for (int i = 0; i < height; i++)
+	{
+		for (int j = 0; j < width; j++)
+		{
+			if (m_InImage[(i*width) + j] >= m_Threshold)
+				m_OutImage[(i*width) + j] = 255;
+			else
+				m_OutImage[(i*width) + j] = 0;
+		}
+	}
+	UpdateAllViews(NULL);
+}

@@ -31,6 +31,7 @@ void Arithmetic_Add(Mat src, Mat &dst, int value)
 		for (int x = 0; x < width; x++)
 		{
 			int temp = srcData[(y*width) + x] + value;
+
 			if (temp > 255)
 				dstData[(y*width) + x] = 255;
 			else

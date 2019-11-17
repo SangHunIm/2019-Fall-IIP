@@ -50,4 +50,7 @@ public:
 	unsigned char *m_InImage;
 	unsigned char *m_OutImage;
 	afx_msg void OnArithmetic();
+	afx_msg void OnHistogram();
+	afx_msg void OnBinarization();
+	unsigned char m_Threshold;
 };
