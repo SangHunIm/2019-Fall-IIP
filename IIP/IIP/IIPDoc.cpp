@@ -26,6 +26,10 @@ BEGIN_MESSAGE_MAP(CIIPDoc, CDocument)
 	ON_COMMAND(ID_Histogram, &CIIPDoc::OnHistogram)
 	ON_COMMAND(ID_Binarization, &CIIPDoc::OnBinarization)
 	ON_COMMAND(ID_Gonzalez, &CIIPDoc::OnGonzalez)
+	ON_COMMAND(ID_Otsu, &CIIPDoc::OnOtsu)
+	ON_COMMAND(ID_Lowpassfilter, &CIIPDoc::OnLowpassfilter)
+	ON_COMMAND(ID_Highpassfilter, &CIIPDoc::OnHighpassfilter)
+	ON_COMMAND(ID_Medianfilter, &CIIPDoc::OnMedianfilter)
 END_MESSAGE_MAP()
 
 
@@ -366,4 +370,210 @@ void CIIPDoc::OnGonzalez()
 	strTemp.Format(_T("Gonzalez 임계값 = %d"), m_Threshold);
 	AfxMessageBox(strTemp);
 
+}
+
+
+void CIIPDoc::OnOtsu()
+{
+	int hist[256];
+
+	memset(hist, 0, sizeof(int) * 256);
+
+	for (int i = 0; i < height; i++)
+		for (int j = 0; j < width; j++)
+			hist[m_InImage[(i*width) + j]]++;
+
+	int N = 256 * 256;
+	int L = 256;
+	int temp_threshold;
+	double Mu_1, Mu_2;
+	double Mu_T;
+	double W1, W2;
+	double Sigma_B;
+	double Sigma_Bmax = 0;
+	double H_m[256], H_cdf[256];
+	H_m[0] = 0; H_cdf[0] = hist[0];
+
+	for (int i = 1; i < L; i++) {
+		H_m[i] = H_m[i - 1] + hist[i] * (double)i;
+		H_cdf[i] = H_cdf[i - 1] + hist[i];
+	}
+	Mu_T = H_m[255] / N;
+	for (int k = 3; k < L; k += 4) {
+		W1 = H_cdf[k] / N;
+		W2 = 1. - W1;
+		if (H_cdf[k] == 0.) continue;
+		Mu_1 = H_m[k] / H_cdf[k];
+		if ((N - H_cdf[k]) == 0.) continue;
+		Mu_2 = (H_m[L - 1] - H_m[k]) / (N - H_cdf[k]);
+		Sigma_B = W1 * (Mu_1 - Mu_T)*(Mu_1 - Mu_T) +
+			W2 * (Mu_2 - Mu_T)*(Mu_2 - Mu_T);
+		if (Sigma_B > Sigma_Bmax) {
+			Sigma_Bmax = Sigma_B;
+			temp_threshold = k;
+		}
+	}
+	for (int k = temp_threshold - 3; k <= temp_threshold + 3; k++) {
+		W1 = H_cdf[k] / N; 
+		W2 = 1. - W1;
+		Mu_1 = H_m[k] / H_cdf[k]; 
+		Mu_2 = (H_m[L - 1] - H_m[k]) / (N - H_cdf[k]);
+		Sigma_B = W1 * (Mu_1 - Mu_T)*(Mu_1 - Mu_T) + W2 * (Mu_2 - Mu_T)*(Mu_2 - Mu_T);
+		if (Sigma_B > Sigma_Bmax) {
+			Sigma_Bmax = Sigma_B;
+			m_Threshold = k; 
+		}
+	}
+	for (int i = 0; i < height; i++)
+	{
+		for (int j = 0; j < width; j++)
+		{
+			if (m_InImage[(i*width) + j] >= m_Threshold)
+				m_OutImage[(i*width) + j] = 255;
+			else
+				m_OutImage[(i*width) + j] = 0;
+		}
+	}
+	UpdateAllViews(NULL);
+	CString strTemp;
+	strTemp.Format(_T("Otsu 임계값 = %d"), m_Threshold);
+	AfxMessageBox(strTemp);
+}
+
+
+void CIIPDoc::OnLowpassfilter()
+{
+	static int mask[3][3] = { {1, 1, 1}, {1, 1, 1}, {1, 1, 1} };
+	int temp;
+
+	for (int i = 1; i < height; i++) {
+		for (int j = 1; j < width; j++) {
+			temp = 0;
+			for (int r = 0; r < 3; r++) {
+				for (int c = 0; c < 3; c++)
+					temp += (mask[r][c] * m_InImage[((i + r - 1) * width) + j + c - 1]);
+			}
+			m_OutImage[(i*width) + j] = (unsigned char)(temp / 9);
+		}
+	}
+
+	for (int i = 0; i < width; i++) {
+		m_OutImage[i] = m_InImage[i];
+		m_OutImage[((height - 2)*width) + i] = m_InImage[((height - 2)*width) + i];
+	}
+	for (int i = 0; i < height; i++) {
+		m_OutImage[((i)*width)] = m_InImage[((i)*width)];
+		m_OutImage[((i + 1)*width - 1)] = m_InImage[((i + 1)*width - 1)];
+	}
+	UpdateAllViews(NULL);
+}
+
+
+void CIIPDoc::OnHighpassfilter()
+{
+	static int mask[3][3] = { {-1, -1, -1}, {-1, 9, -1}, {-1, -1, -1} };
+	int temp, Max = -256 * 256, Min = 256 * 256;
+	int i, j, r, c;
+	int *Result = (int*)malloc(sizeof(int) * width * height);
+
+	for (i = 1; i < height; i++) {
+		for (j = 1; j < width; j++) {
+			temp = 0; 
+			for (r = 0; r < 3; r++) {
+				for (c = 0; c < 3; c++)
+					temp += (mask[r][c] * m_InImage[((i + r - 1)*width) + j + c - 1]); 
+			}
+			if (temp > Max) Max = temp;
+			if (temp < Min) Min = temp;
+			Result[(i*width) + j] = temp;
+		}
+	}
+	int size = width * height;
+
+	for (int i = 0; i < width; i++) {
+		m_OutImage[i] = m_InImage[i];
+		m_OutImage[size - i - 1] = m_InImage[size - i - 1];
+	}
+	for (int i = 0; i < height; i++) {
+		m_OutImage[((i)*width)] = m_InImage[((i)*width)];
+		m_OutImage[((i + 1)*width - 1)] = m_InImage[((i + 1)*width - 1)];
+	}
+
+	//그대로 출력
+	/*
+	for(i = 0 ; i < height; i++){
+		for(j = 0 ; j < width ; j++){
+			m_OutImage[(i*width)+j] = (unsigned
+			char)Result[(i*width)+j];
+		}
+	}*/
+
+	//클리핑
+	for (i = 0; i < height; i++) {
+		for (j = 0; j < width; j++) {
+			if (Result[(i*width) + j] > 255) m_OutImage[(i*width) + j] =
+				255;
+			else if (Result[(i*width) + j] < 0) m_OutImage[(i*width) + j] =
+				0;
+			else
+				m_OutImage[(i*width) + j] = (unsigned
+					char)Result[(i*width) + j];
+		}
+	}
+
+	//매핑
+	/*
+	double C1 = (double)(255.0 / (Max - Min));
+	double C2 = (double)(-255.0*Min / (Max - Min));
+	for (i = 0; i < height; i++) {
+		for (j = 0; j < width; j++) {
+			m_OutImage[(i*width) + j] = (unsigned
+				char)(C1*Result[(i*width) + j] + C2);
+		}
+	}
+
+	CString strTemp;
+	strTemp.Format(_T("최대값 = %d , 최소값 = %d"), Max, Min);
+	AfxMessageBox(strTemp);
+	*/
+
+	UpdateAllViews(NULL);
+}
+
+
+void CIIPDoc::OnMedianfilter()
+{
+	const int winSize = 3;
+
+	unsigned char* arr = new unsigned char[winSize * winSize];
+
+	for (int y = 0 + winSize / 2; y < height - winSize / 2; y++)
+	{
+		for (int x = 0 + winSize / 2; x < width - winSize / 2; x++)
+		{
+			int total = 0; 
+			for (int by = 0; by < winSize; by++)
+			{
+				for (int bx = 0; bx < winSize; bx++)
+				{
+					arr[total] = m_InImage[((y + (by - winSize / 2)) * width) + x + (bx - winSize / 2)];
+					for (int i = total; i > 0; i--)
+					{
+						
+						if (arr[i] < arr[i - 1])
+						{
+							unsigned char temp = arr[i];
+							arr[i] = arr[i - 1];
+							arr[i - 1] = temp;
+						}
+					}
+					total++;
+				}
+			}
+			m_OutImage[(y*width) + x] = arr[winSize * winSize / 2];
+		}
+	}
+	delete[] arr; 
+
+	UpdateAllViews(NULL);
 }

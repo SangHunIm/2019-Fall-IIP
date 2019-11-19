@@ -54,4 +54,8 @@ public:
 	afx_msg void OnBinarization();
 	unsigned char m_Threshold;
 	afx_msg void OnGonzalez();
+	afx_msg void OnOtsu();
+	afx_msg void OnLowpassfilter();
+	afx_msg void OnHighpassfilter();
+	afx_msg void OnMedianfilter();
 };
