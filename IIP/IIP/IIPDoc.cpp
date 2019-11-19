@@ -25,6 +25,7 @@ BEGIN_MESSAGE_MAP(CIIPDoc, CDocument)
 	ON_COMMAND(ID_ARITHMETIC, &CIIPDoc::OnArithmetic)
 	ON_COMMAND(ID_Histogram, &CIIPDoc::OnHistogram)
 	ON_COMMAND(ID_Binarization, &CIIPDoc::OnBinarization)
+	ON_COMMAND(ID_Gonzalez, &CIIPDoc::OnGonzalez)
 END_MESSAGE_MAP()
 
 
@@ -287,4 +288,82 @@ void CIIPDoc::OnBinarization()
 		}
 	}
 	UpdateAllViews(NULL);
+}
+
+
+void CIIPDoc::OnGonzalez()
+{
+	// TODO: 여기에 명령 처리기 코드를 추가합니다.
+	int hist[256];
+
+	memset(hist, 0, sizeof(int) * 256);
+
+	for (int i = 0; i < height; i++) {
+		for (int j = 0; j < width; j++) {
+			hist[m_InImage[(i*width) + j]]++;
+		}
+	}
+
+	int T, min, max;
+
+	for (int i = 0; i < 256; i++) {
+		if (hist[i] > 0) {
+			min = i;
+			i = 257;
+		}
+	}
+	for (int i = 255; i > 0; i--) {
+		if (hist[i] > 0) {
+			max = i;
+			i = -1;
+		}
+	}
+
+	T = (min + max) / 2;
+
+	int Diff = 5; //새롭게 계산된 임계값과 이전임계값과의 차이에 대한 초기값
+	while (Diff >= 1)
+	{
+		// 그룹 1에 속한 화소 집합의 평균계산
+		int nSum = 0, nCnt = 0;
+		// nCnt: 그룹 1의 전체 화소수
+		for (int i = 0; i < T; i++) {
+			nSum += hist[i] * i;
+			nCnt += hist[i];
+		}
+		double Mu_1 = (double)(nSum / nCnt); // 그룹 1의 밝기값 평균
+		// 그룹 2에 속한 화소 집합의 평균계산
+		nSum = 0, nCnt = 0;
+		// nCnt: 그룹 2의 전체 화소수
+		for (int i = T; i < 256; i++)
+		{
+			nSum += hist[i] * i;
+			nCnt += hist[i];
+		}
+		double Mu_2 = (double)(nSum / nCnt); // 그룹 2의 밝기값 평균
+		// 두 화소 그룹의 밝기값 평균을 이용한 임계값 결정
+		int T_Last = (int)((Mu_1 + Mu_2) / 2);
+		Diff = abs(T - T_Last);
+		T = T_Last;
+	}
+
+	m_Threshold = T;
+
+	for (int i = 0; i < height; i++)
+	{
+		for (int j = 0; j < width; j++)
+		{
+			if (m_InImage[(i*width) + j] >= m_Threshold)
+				m_OutImage[(i*width) + j] = 255;
+			else
+				m_OutImage[(i*width) + j] = 0;
+		}
+	}
+
+	UpdateAllViews(NULL);
+
+	CString strTemp;
+	strTemp.Format(_T("Gonzalez 임계값 = %d"), m_Threshold);
+	AfxMessageBox(strTemp);
+
 }

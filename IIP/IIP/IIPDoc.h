@@ -53,4 +53,5 @@ public:
 	afx_msg void OnHistogram();
 	afx_msg void OnBinarization();
 	unsigned char m_Threshold;
+	afx_msg void OnGonzalez();
 };
