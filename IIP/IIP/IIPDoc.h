@@ -58,4 +58,7 @@ public:
 	afx_msg void OnLowpassfilter();
 	afx_msg void OnHighpassfilter();
 	afx_msg void OnMedianfilter();
+	afx_msg void OnFdct();
+	double* m_Dct;
+	afx_msg void OnIdct();
 };

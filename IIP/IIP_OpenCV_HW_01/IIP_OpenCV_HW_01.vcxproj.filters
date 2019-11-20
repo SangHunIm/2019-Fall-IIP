@@ -23,7 +23,7 @@
     <ClCompile Include="pch.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="IIP_OpenCV_HW_1.cpp">
+    <ClCompile Include="IIP_OpenCV_HW_01.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
   </ItemGroup>

@@ -30,6 +30,8 @@ BEGIN_MESSAGE_MAP(CIIPDoc, CDocument)
 	ON_COMMAND(ID_Lowpassfilter, &CIIPDoc::OnLowpassfilter)
 	ON_COMMAND(ID_Highpassfilter, &CIIPDoc::OnHighpassfilter)
 	ON_COMMAND(ID_Medianfilter, &CIIPDoc::OnMedianfilter)
+	ON_COMMAND(ID_Fdct, &CIIPDoc::OnFdct)
+	ON_COMMAND(ID_Idct, &CIIPDoc::OnIdct)
 END_MESSAGE_MAP()
 
 
@@ -574,6 +576,93 @@ void CIIPDoc::OnMedianfilter()
 		}
 	}
 	delete[] arr; 
+
+	UpdateAllViews(NULL);
+}
+
+
+void CIIPDoc::OnFdct()
+{
+	const double PI = 3.14159265;	const double scale = 1 / 2.;	const int N = (width<height? width: height) * scale;	m_Dct = (double*)malloc(sizeof(double) * N*N);	unsigned char *ZoomImage;	ZoomImage = new unsigned char[sizeof(char) * N * N];	for (int y_new = 0; y_new < N; y_new++) {
+		for (int x_new = 0; x_new < N; x_new++) {
+			double x = x_new / scale;
+			double y = y_new / scale;
+
+			int x_org = (int)(x + 0.5);
+			int y_org = (int)(y + 0.5);
+
+			ZoomImage[y_new * N + x_new] = m_InImage[y_org * width + x_org];
+		}
+	}	int u_max, v_max;
+	double Sum, Cu, Cv, DCT_max = 0.;	for (int u = 0; u < N; u++) {
+		if (u == 0) Cu = sqrt(1. / 2.); else Cu = 1;
+		for (int v = 0; v < N; v++) {
+			Sum = 0;
+			if (v == 0) Cv = sqrt(1. / 2.); else Cv = 1;
+			for (int y = 0; y < N; y++) {
+				for (int x = 0; x < N; x++) {
+					double cosValue1 = cos(v * PI * (2 * y + 1) / (2 * N));
+					double cosValue2 = cos(u * PI * (2 * x + 1) / (2 * N));
+					Sum += (double)ZoomImage[y*N + x] * cosValue1*cosValue2;
+				}
+			}
+			m_Dct[u*N + v] = 2. / N * Cu*Cv*Sum;
+			if (abs((int)m_Dct[u*N + v]) > DCT_max) {
+				DCT_max = abs((int)m_Dct[u*N + v]);
+				u_max = u;
+				v_max = v;
+			}
+		}
+	}	CString strTemp;
+	strTemp.Format(_T("(u,v)=(%d,%d)일때 DCT_max값=%5.3f"), u_max, v_max, DCT_max);
+	AfxMessageBox(strTemp);	const int threshold = DCT_max * 0.05;
+	for (int y = 0; y < N; y++) {
+		for (int x = 0; x < N; x++) {
+			if (abs((int)m_Dct[y*N + x]) > threshold)
+				m_OutImage[y*width + x] = 255;
+			else
+				m_OutImage[y*width + x] = abs((int)m_Dct[y*N + x]) * 255 / threshold;
+		}
+	}
+
+	memset(m_InImage, 0, sizeof(unsigned char) * (width*height));
+	
+	for (int y = 0; y < N; y++) {
+		for (int x = 0; x < N; x++) {
+			m_InImage[y*width + x] = ZoomImage[y*N + x];
+		}
+	}
+	delete[] ZoomImage;
+
+	UpdateAllViews(NULL);}
+
+
+void CIIPDoc::OnIdct()
+{
+	const double PI = 3.14159265;
+	const double scale = 1 / 2.;
+	const int N = (width < height ? width : height) * scale; // IDCT 변환 열
+	//m_Dct = (double*) malloc(sizeof(double) * N*N);
+	double Sum, Cu, Cv, temp;
+
+	for (int y = 0; y < N; y++) {
+		for (int x = 0; x < N; x++) {
+			Sum = 0;
+			for (int u = 0; u < N; u++)
+			{
+				for (int v = 0; v < N; v++)
+				{
+					if (v == 0) Cv = sqrt(1. / 2.); else Cv = 1;
+					if (u == 0) Cu = sqrt(1. / 2.); else Cu = 1;
+					double cosValue1 = cos(v * PI * (2 * y + 1) / (2 * N));
+					double cosValue2 = cos(u * PI * (2 * x + 1) / (2 * N));
+					Sum += Cu * Cv*m_Dct[u*N + v] * cosValue1*cosValue2;
+				}
+			}
+			temp = Sum * 2. / N;
+			m_OutImage[y*width + x] = (unsigned char)temp;
+		}
+	}
 
 	UpdateAllViews(NULL);
 }
