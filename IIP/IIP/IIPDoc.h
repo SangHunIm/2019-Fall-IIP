@@ -4,7 +4,8 @@
 
 
 #pragma once
-
+#include "Sample.h"
+#include "Classifier.h"
 
 class CIIPDoc : public CDocument
 {
@@ -61,4 +62,13 @@ public:
 	afx_msg void OnFdct();
 	double* m_Dct;
 	afx_msg void OnIdct();
+
+	Sample samples[16];
+	double weight[16];
+	int turn;
+	Classifier classifierList[100];
+	afx_msg void OnAdaboostInit();
+	double AdaboostResult();
+	afx_msg void OnAdaboostNext();
+	afx_msg void OnAdaboosttest();
 };

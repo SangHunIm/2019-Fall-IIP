@@ -32,6 +32,9 @@ BEGIN_MESSAGE_MAP(CIIPDoc, CDocument)
 	ON_COMMAND(ID_Medianfilter, &CIIPDoc::OnMedianfilter)
 	ON_COMMAND(ID_Fdct, &CIIPDoc::OnFdct)
 	ON_COMMAND(ID_Idct, &CIIPDoc::OnIdct)
+	ON_COMMAND(ID_AdaBoost_Init, &CIIPDoc::OnAdaboostInit)
+	ON_COMMAND(ID_Adaboost_Next, &CIIPDoc::OnAdaboostNext)
+	ON_COMMAND(ID_AdaboostTest, &CIIPDoc::OnAdaboosttest)
 END_MESSAGE_MAP()
 
 
@@ -40,8 +43,8 @@ END_MESSAGE_MAP()
 CIIPDoc::CIIPDoc() noexcept
 {
 	// TODO: 여기에 일회성 생성 코드를 추가합니다.
-	m_InImage = NULL;
-	m_OutImage = NULL;
+	m_InImage = (unsigned char*)malloc(sizeof(unsigned char)* 256 * 256);
+	m_OutImage = (unsigned char*)malloc(sizeof(unsigned char)* 256 * 256);
 	height = 0;
 	width = 0;
 }
@@ -583,7 +586,14 @@ void CIIPDoc::OnMedianfilter()
 
 void CIIPDoc::OnFdct()
 {
-	const double PI = 3.14159265;	const double scale = 1 / 2.;	const int N = (width<height? width: height) * scale;	m_Dct = (double*)malloc(sizeof(double) * N*N);	unsigned char *ZoomImage;	ZoomImage = new unsigned char[sizeof(char) * N * N];	for (int y_new = 0; y_new < N; y_new++) {
+	const double PI = 3.14159265;
+	const double scale = 1 / 2.;
+	const int N = (width<height? width: height) * scale;
+
+	m_Dct = (double*)malloc(sizeof(double) * N*N);
+	unsigned char *ZoomImage;
+	ZoomImage = new unsigned char[sizeof(char) * N * N];
+	for (int y_new = 0; y_new < N; y_new++) {
 		for (int x_new = 0; x_new < N; x_new++) {
 			double x = x_new / scale;
 			double y = y_new / scale;
@@ -593,8 +603,10 @@ void CIIPDoc::OnFdct()
 
 			ZoomImage[y_new * N + x_new] = m_InImage[y_org * width + x_org];
 		}
-	}	int u_max, v_max;
-	double Sum, Cu, Cv, DCT_max = 0.;	for (int u = 0; u < N; u++) {
+	}
+	int u_max, v_max;
+	double Sum, Cu, Cv, DCT_max = 0.;
+	for (int u = 0; u < N; u++) {
 		if (u == 0) Cu = sqrt(1. / 2.); else Cu = 1;
 		for (int v = 0; v < N; v++) {
 			Sum = 0;
@@ -613,9 +625,12 @@ void CIIPDoc::OnFdct()
 				v_max = v;
 			}
 		}
-	}	CString strTemp;
+	}
+	CString strTemp;
 	strTemp.Format(_T("(u,v)=(%d,%d)일때 DCT_max값=%5.3f"), u_max, v_max, DCT_max);
-	AfxMessageBox(strTemp);	const int threshold = DCT_max * 0.05;
+	AfxMessageBox(strTemp);
+
+	const int threshold = DCT_max * 0.05;
 	for (int y = 0; y < N; y++) {
 		for (int x = 0; x < N; x++) {
 			if (abs((int)m_Dct[y*N + x]) > threshold)
@@ -634,15 +649,15 @@ void CIIPDoc::OnFdct()
 	}
 	delete[] ZoomImage;
 
-	UpdateAllViews(NULL);}
+	UpdateAllViews(NULL);
+}
 
 
 void CIIPDoc::OnIdct()
 {
 	const double PI = 3.14159265;
 	const double scale = 1 / 2.;
-	const int N = (width < height ? width : height) * scale; // IDCT 변환 열
-	//m_Dct = (double*) malloc(sizeof(double) * N*N);
+	const int N = (width < height ? width : height) * scale;
 	double Sum, Cu, Cv, temp;
 
 	for (int y = 0; y < N; y++) {
@@ -661,6 +676,247 @@ void CIIPDoc::OnIdct()
 			}
 			temp = Sum * 2. / N;
 			m_OutImage[y*width + x] = (unsigned char)temp;
+		}
+	}
+
+	UpdateAllViews(NULL);
+}
+
+
+void CIIPDoc::OnAdaboostInit()
+{
+	samples[0] = Sample(5, 10, 1);
+	samples[1] = Sample(34, 29, 1);
+	samples[2] = Sample(99, 63, 1);
+	samples[3] = Sample(82, 36, 1);
+	samples[4] = Sample(165, 140, 1);
+	samples[5] = Sample(169, 84, 1);
+	samples[6] = Sample(190, 118, 1);
+	samples[7] = Sample(198, 153, 1);
+	samples[8] = Sample(30, 163, -1);
+	samples[9] = Sample(19, 58, -1);
+	samples[10] = Sample(98, 89, -1);
+	samples[11] = Sample(138, 153, -1);
+	samples[12] = Sample(54, 140, -1);
+	samples[13] = Sample(76, 50, -1);
+	samples[14] = Sample(81, 170, -1);
+	samples[15] = Sample(210, 201, -1);
+
+	for (int i = 0; i < 16; i++)
+	{
+		weight[i] = 1 / (double)16;
+	}
+
+	turn = 0;
+
+	AdaboostResult();
+
+	UpdateAllViews(NULL);
+}
+double CIIPDoc::AdaboostResult(void)
+{
+	// .......................... AdaboostResult의 InImage 출력 부분
+
+	//입력, 출력 이미지 배경을 검은색으로 초기화
+	for (int y = 0; y < 256; y++)
+	{
+		for (int x = 0; x < 256; x++)
+		{
+			m_InImage[y*width + x] = 0;
+			m_OutImage[y*width + x] = 0;
+		}
+	}
+	for (int i = 0; i < 16; i++)
+	{
+		int x = samples[i].x_u;
+		int y = samples[i].x_v;
+
+		if (samples[i].y == 1)
+		{
+			m_InImage[y*width + x] = 255;
+			m_InImage[y*width + x + 1] = 255;
+			m_InImage[(y + 1) * width + x] = 255;
+			m_InImage[(y + 1)*width + x + 1] = 255;
+		}
+		else
+		{
+			m_InImage[y*width + x] = 80;
+			m_InImage[y*width + x + 1] = 80;
+			m_InImage[(y + 1) * width + x] = 80;
+			m_InImage[(y + 1)*width + x + 1] = 80;
+		}
+	}
+
+	//약분류기들의 직선을 화면에 표시
+	for (int t = 0; t < turn; t++)
+	{
+		if (classifierList[t].Direction == 1)
+		{
+			int thX = classifierList[t].Th;
+			for (int y = 0; y < 256; y++)
+			{
+				m_OutImage[y*width + thX] = 128;
+			}
+		}
+		else
+		{
+			int thY = classifierList[t].Th;
+			for (int x = 0; x < 256; x++)
+			{
+				m_OutImage[thY*width + x] = 128;
+			}
+		}
+	}
+
+
+	int countError = 0;//총 에러 샘플 수
+
+	//각각의 샘플에 대해
+	for (int i = 0; i < 16; i++)
+	{
+		//3. 현재까지의 강분류기 결과 도출
+		double result = 0;
+		double totalAlpha = 0;
+		for (int t = 0; t < turn; t++) 
+		{
+			double error = classifierList[t].error;
+			result += classifierList[t].alpha * classifierList[t].Classify(samples[i]);
+		}
+
+			//분류 결과에 따라 화면에 색깔을 달리하여 표시
+		int x = samples[i].x_u;
+		int y = samples[i].x_v;
+
+		if (result > 0)
+		{
+			m_OutImage[y*width + x] = 255;
+			m_OutImage[y*width + x + 1] = 255;
+			m_OutImage[(y + 1) * width + x] = 255;
+			m_OutImage[(y + 1)*width + x + 1] = 255;
+		}
+		else
+		{
+			m_OutImage[y*width + x] = 80;
+			m_OutImage[y*width + x + 1] = 80;
+			m_OutImage[(y + 1) * width + x] = 80;
+			m_OutImage[(y + 1)*width + x + 1] = 80;
+		}
+
+		//강분류기의 결과가 틀렸다면 에러에 대한 카운트 증가
+		if ((result < 0 && samples[i].y > 0) ||
+			(result > 0 && samples[i].y < 0))
+		{
+			countError++;
+		}
+	}
+
+	//전체 샘플에 대한 에러율을 리턴
+	return countError / (double)16;
+}
+
+void CIIPDoc::OnAdaboostNext()
+{
+	if (turn == 100) return;
+
+	Classifier minClassifier;//최소 에러값을 가지는 가장 강한 약분류기
+	minClassifier.error = 1;
+
+	//2.1 모든 분류기 중 가장 에러가 작은 분류기를 선택한다.
+	//1이면 u축, 2이면 v축
+	for (int axis = 0; axis <= 1; axis++)
+	{
+		for (int direction = -1; direction <= 1; direction += 2)
+		{
+			for (int th = 0; th < 256; th++)
+			{
+				//분류기 생성 
+				Classifier classifier(direction, th, axis);
+
+				//생성된 분류기를 모든 샘플에 테스트하여 에러 도출
+				classifier.error = 0;
+				for (int i = 0; i < 16; i++)
+				{
+					if (classifier.Classify(samples[i]) != samples[i].y) 
+					{
+						classifier.error += weight[i];
+					}
+				}
+
+				//에러를 최소로 하는 분류기 선택
+				if (classifier.error < minClassifier.error)
+				{
+					minClassifier = classifier;
+				}
+			}
+		}
+	}
+
+	//2.2 h_t에 대한 알파값 획득
+	minClassifier.alpha = 0.5 * log((1 + minClassifier.error) / (minClassifier.error));
+
+	//2.3 가중치 업데이트
+	double totalWeight = 0;
+	for (int i = 0; i < 16; i++)
+	{
+		weight[i] = weight[i] * exp(-minClassifier.alpha * samples[i].y * minClassifier.Classify(samples[i]));
+		totalWeight += weight[i];
+	}
+
+	//가중치 초기화
+	for (int i = 0; i < 16; i++)
+	{
+		weight[i] /= totalWeight;
+	}
+
+	//찾아낸 분류기를 리스트에 저장
+	classifierList[turn] = minClassifier;
+
+	turn++;//학습된 횟수 증가
+
+	//3. 최종 분류기 결과 도출
+	double errorRate = AdaboostResult();
+
+	UpdateAllViews(NULL);
+
+	CString string;
+	string.Format(_T("에러율 : %.2lf"), errorRate);
+
+	MessageBox(NULL, string, _T(""), MB_OK);
+}
+
+void CIIPDoc::OnAdaboosttest()
+{
+	for (int y = 0; y < 256; y++)
+		for (int x = 0; x < 256; x++)
+			m_OutImage[y*width + x] = 0;
+
+	//격자 간격의 테스트 샘플에 대해
+	for (int y = 10; y <= 250; y += 15)
+	{
+		for (int x = 10; x <= 250; x += 15)
+		{
+			//강 분류기에 의한 분류
+			double result = 0;
+			for (int t = 0; t < turn; t++)
+			{
+				double error = classifierList[t].error;
+				result += classifierList[t].alpha * classifierList[t].Classify(Sample(x, y, 1));
+			}
+
+			if (result > 0)
+			{
+				m_OutImage[y*width + x] = 255;
+				m_OutImage[y*width + x + 1] = 255;
+				m_OutImage[(y + 1) * width + x] = 255;
+				m_OutImage[(y + 1)*width + x + 1] = 255;
+			}
+			else
+			{
+				m_OutImage[y*width + x] = 80;
+				m_OutImage[y*width + x + 1] = 80;
+				m_OutImage[(y + 1) * width + x] = 80;
+				m_OutImage[(y + 1)*width + x + 1] = 80;
+			}
 		}
 	}
 

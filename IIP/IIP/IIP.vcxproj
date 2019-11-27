@@ -184,19 +184,23 @@
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Classifier.h" />
     <ClInclude Include="IIP.h" />
     <ClInclude Include="IIPDoc.h" />
     <ClInclude Include="IIPView.h" />
     <ClInclude Include="MainFrm.h" />
     <ClInclude Include="Resource.h" />
+    <ClInclude Include="Sample.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Classifier.cpp" />
     <ClCompile Include="IIP.cpp" />
     <ClCompile Include="IIPDoc.cpp" />
     <ClCompile Include="IIPView.cpp" />
     <ClCompile Include="MainFrm.cpp" />
+    <ClCompile Include="Sample.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
