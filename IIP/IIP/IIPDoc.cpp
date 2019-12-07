@@ -41,6 +41,12 @@ BEGIN_MESSAGE_MAP(CIIPDoc, CDocument)
 	ON_COMMAND(ID_Zoomin, &CIIPDoc::OnZoomin)
 	ON_COMMAND(ID_Zoomout, &CIIPDoc::OnZoomout)
 	ON_COMMAND(ID_Rotation, &CIIPDoc::OnRotation)
+	ON_COMMAND(ID_BinDilate, &CIIPDoc::OnBindilate)
+	ON_COMMAND(ID_BinEros, &CIIPDoc::OnBineros)
+	ON_COMMAND(ID_BinOpen, &CIIPDoc::OnBinopen)
+	ON_COMMAND(ID_BinClose, &CIIPDoc::OnBinclose)
+	ON_COMMAND(ID_GrayDilate, &CIIPDoc::OnGraydilate)
+	ON_COMMAND(ID_GrayEros, &CIIPDoc::OnGrayeros)
 END_MESSAGE_MAP()
 
 
@@ -1144,6 +1150,265 @@ void CIIPDoc::OnRotation()
 			
 			else
 				m_OutImage[y_new *width + x_new] = m_InImage[y_org *width + x_org];
+		}
+	}
+	UpdateAllViews(NULL);
+}
+
+
+void CIIPDoc::OnBindilate()
+{
+	for (int y = 1; y < height; y++)
+	{
+		for (int x = 1; x < width; x++)
+		{
+			bool found = false;
+			for (int by = y - 1; by <= y + 1; by++)
+			{
+				for (int bx = x - 1; bx <= x + 1; bx++)
+				{
+					if (m_InImage[by*width + bx] > 0)
+					{
+						found = true;
+						break;
+					}
+				}
+				if (found == true)
+				{
+					break;
+				}
+			}
+			if (found == true)
+			{
+				m_OutImage[y*width + x] = 255;
+			}
+			else
+			{
+				m_OutImage[y*width + x] = 0;
+			}
+		}
+	}
+	UpdateAllViews(NULL);
+}
+
+
+void CIIPDoc::OnBineros()
+{
+	for (int y = 1; y < height; y++)
+	{
+		for (int x = 1; x < width; x++)
+		{
+			bool found = false;
+			for (int by = y - 1; by <= y + 1; by++)
+			{
+				for (int bx = x - 1; bx <= x + 1; bx++)
+				{
+					if (m_InImage[by*width + bx] == 0)
+					{
+						found = true;
+						break;
+					}
+				}
+				if (found == false)
+				{
+					break;
+				}
+			}
+			if (found == false)
+			{
+				m_OutImage[y*width + x] = 255;
+			}
+			else
+			{
+				m_OutImage[y*width + x] = 0;
+			}
+		}
+	}
+	UpdateAllViews(NULL);
+}
+
+
+void CIIPDoc::OnBinopen()
+{
+	unsigned char *m_InTmp = (unsigned char*)malloc(sizeof(unsigned char)* width * height);
+
+	for (int y = 1; y < height; y++)
+	{
+		for (int x = 1; x < width; x++)
+		{
+			bool found = false;
+			for (int by = y - 1; by <= y + 1; by++)
+			{
+				for (int bx = x - 1; bx <= x + 1; bx++)
+				{
+					if (m_InImage[by*width + bx] == 0)
+					{
+						found = true;
+						break;
+					}
+				}
+				if (found == false)
+				{
+					break;
+				}
+			}
+			if (found == false)
+			{
+				m_InTmp[y*width + x] = 255;
+			}
+			else
+			{
+				m_InTmp[y*width + x] = 0;
+			}
+		}
+	}
+
+	for (int y = 1; y < height; y++)
+	{
+		for (int x = 1; x < width; x++)
+		{
+			bool found = false;
+			for (int by = y - 1; by <= y + 1; by++)
+			{
+				for (int bx = x - 1; bx <= x + 1; bx++)
+				{
+					if (m_InTmp[by*width + bx] > 0)
+					{
+						found = true;
+						break;
+					}
+				}
+				if (found == true)
+				{
+					break;
+				}
+			}
+			if (found == true)
+			{
+				m_OutImage[y*width + x] = 255;
+			}
+			else
+			{
+				m_OutImage[y*width + x] = 0;
+			}
+		}
+	}
+	UpdateAllViews(NULL);
+}
+
+
+void CIIPDoc::OnBinclose()
+{
+	unsigned char *m_InTmp = (unsigned char*)malloc(sizeof(unsigned char)* width * height);
+
+	for (int y = 1; y < height; y++)
+	{
+		for (int x = 1; x < width; x++)
+		{
+			bool found = false;
+			for (int by = y - 1; by <= y + 1; by++)
+			{
+				for (int bx = x - 1; bx <= x + 1; bx++)
+				{
+					if (m_InImage[by*width + bx] > 0)
+					{
+						found = true;
+						break;
+					}
+				}
+				if (found == true)
+				{
+					break;
+				}
+			}
+			if (found == true)
+			{
+				m_InTmp[y*width + x] = 255;
+			}
+			else
+			{
+				m_InTmp[y*width + x] = 0;
+			}
+		}
+	}
+
+	for (int y = 1; y < height; y++)
+	{
+		for (int x = 1; x < width; x++)
+		{
+			bool found = false;
+			for (int by = y - 1; by <= y + 1; by++)
+			{
+				for (int bx = x - 1; bx <= x + 1; bx++)
+				{
+					if (m_InTmp[by*width + bx] == 0)
+					{
+						found = true;
+						break;
+					}
+				}
+				if (found == false)
+				{
+					break;
+				}
+			}
+			if (found == false)
+			{
+				m_OutImage[y*width + x] = 255;
+			}
+			else
+			{
+				m_OutImage[y*width + x] = 0;
+			}
+		}
+	}
+	UpdateAllViews(NULL);
+}
+
+
+void CIIPDoc::OnGraydilate()
+{
+	for (int y = 1; y < height; y++)
+	{
+		for (int x = 1; x < width; x++)
+		{
+			int max = 0;
+			for (int by = 0; by < 3; by++)
+			{
+				for (int bx = 0; bx < 3; bx++)
+				{
+					if (max < m_InImage[(y + (by - 1))*width + x + (bx - 1)])
+					{
+						max = m_InImage[(y + (by - 1))*width + x + (bx - 1)];
+					}
+				}
+			}
+			m_OutImage[y*width + x] = max;
+		}
+	}
+	UpdateAllViews(NULL);
+}
+
+
+void CIIPDoc::OnGrayeros()
+{
+
+	for (int y = 1; y < height; y++)
+	{
+		for (int x = 1; x < width; x++)
+		{
+			int min = 255;
+			for (int by = 0; by < 3; by++)
+			{
+				for (int bx = 0; bx < 3; bx++)
+				{
+					if (min > m_InImage[(y + (by - 1))*width + x + (bx - 1)])
+					{
+						min = m_InImage[(y + (by - 1))*width + x + (bx - 1)];
+					}
+				}
+			}
+			m_OutImage[y*width + x] = min;
 		}
 	}
 	UpdateAllViews(NULL);

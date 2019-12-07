@@ -65,13 +65,26 @@
 #define ID_Zoomin                       32804
 #define ID_Zoomout                      32805
 #define ID_Rotation                     32806
+#define ID_32807                        32807
+#define ID_32808                        32808
+#define ID_32809                        32809
+#define ID_BinDilate                    32810
+#define ID_BinEros                      32811
+#define ID_32812                        32812
+#define ID_32813                        32813
+#define ID_BinOpen                      32814
+#define ID_BinClose                     32815
+#define ID_32816                        32816
+#define ID_32817                        32817
+#define ID_GrayDilate                   32818
+#define ID_GrayEros                     32819
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        310
-#define _APS_NEXT_COMMAND_VALUE         32807
+#define _APS_NEXT_COMMAND_VALUE         32820
 #define _APS_NEXT_CONTROL_VALUE         1000
 #define _APS_NEXT_SYMED_VALUE           310
 #endif

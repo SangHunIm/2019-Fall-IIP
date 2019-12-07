@@ -77,4 +77,10 @@ public:
 	afx_msg void OnZoomin();
 	afx_msg void OnZoomout();
 	afx_msg void OnRotation();
+	afx_msg void OnBindilate();
+	afx_msg void OnBineros();
+	afx_msg void OnBinopen();
+	afx_msg void OnBinclose();
+	afx_msg void OnGraydilate();
+	afx_msg void OnGrayeros();
 };
