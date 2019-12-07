@@ -35,6 +35,12 @@ BEGIN_MESSAGE_MAP(CIIPDoc, CDocument)
 	ON_COMMAND(ID_AdaBoost_Init, &CIIPDoc::OnAdaboostInit)
 	ON_COMMAND(ID_Adaboost_Next, &CIIPDoc::OnAdaboostNext)
 	ON_COMMAND(ID_AdaboostTest, &CIIPDoc::OnAdaboosttest)
+	ON_COMMAND(ID_Prewitt, &CIIPDoc::OnPrewitt)
+	ON_COMMAND(ID_Sobel, &CIIPDoc::OnSobel)
+	ON_COMMAND(ID_Derivativeofgaussian, &CIIPDoc::OnDerivativeofgaussian)
+	ON_COMMAND(ID_Zoomin, &CIIPDoc::OnZoomin)
+	ON_COMMAND(ID_Zoomout, &CIIPDoc::OnZoomout)
+	ON_COMMAND(ID_Rotation, &CIIPDoc::OnRotation)
 END_MESSAGE_MAP()
 
 
@@ -715,9 +721,6 @@ void CIIPDoc::OnAdaboostInit()
 }
 double CIIPDoc::AdaboostResult(void)
 {
-	// .......................... AdaboostResult의 InImage 출력 부분
-
-	//입력, 출력 이미지 배경을 검은색으로 초기화
 	for (int y = 0; y < 256; y++)
 	{
 		for (int x = 0; x < 256; x++)
@@ -747,7 +750,6 @@ double CIIPDoc::AdaboostResult(void)
 		}
 	}
 
-	//약분류기들의 직선을 화면에 표시
 	for (int t = 0; t < turn; t++)
 	{
 		if (classifierList[t].Direction == 1)
@@ -769,12 +771,10 @@ double CIIPDoc::AdaboostResult(void)
 	}
 
 
-	int countError = 0;//총 에러 샘플 수
+	int countError = 0;
 
-	//각각의 샘플에 대해
 	for (int i = 0; i < 16; i++)
 	{
-		//3. 현재까지의 강분류기 결과 도출
 		double result = 0;
 		double totalAlpha = 0;
 		for (int t = 0; t < turn; t++) 
@@ -783,7 +783,6 @@ double CIIPDoc::AdaboostResult(void)
 			result += classifierList[t].alpha * classifierList[t].Classify(samples[i]);
 		}
 
-			//분류 결과에 따라 화면에 색깔을 달리하여 표시
 		int x = samples[i].x_u;
 		int y = samples[i].x_v;
 
@@ -802,15 +801,12 @@ double CIIPDoc::AdaboostResult(void)
 			m_OutImage[(y + 1)*width + x + 1] = 80;
 		}
 
-		//강분류기의 결과가 틀렸다면 에러에 대한 카운트 증가
 		if ((result < 0 && samples[i].y > 0) ||
 			(result > 0 && samples[i].y < 0))
 		{
 			countError++;
 		}
 	}
-
-	//전체 샘플에 대한 에러율을 리턴
 	return countError / (double)16;
 }
 
@@ -818,21 +814,17 @@ void CIIPDoc::OnAdaboostNext()
 {
 	if (turn == 100) return;
 
-	Classifier minClassifier;//최소 에러값을 가지는 가장 강한 약분류기
+	Classifier minClassifier;
 	minClassifier.error = 1;
 
-	//2.1 모든 분류기 중 가장 에러가 작은 분류기를 선택한다.
-	//1이면 u축, 2이면 v축
 	for (int axis = 0; axis <= 1; axis++)
 	{
 		for (int direction = -1; direction <= 1; direction += 2)
 		{
 			for (int th = 0; th < 256; th++)
 			{
-				//분류기 생성 
 				Classifier classifier(direction, th, axis);
 
-				//생성된 분류기를 모든 샘플에 테스트하여 에러 도출
 				classifier.error = 0;
 				for (int i = 0; i < 16; i++)
 				{
@@ -842,7 +834,6 @@ void CIIPDoc::OnAdaboostNext()
 					}
 				}
 
-				//에러를 최소로 하는 분류기 선택
 				if (classifier.error < minClassifier.error)
 				{
 					minClassifier = classifier;
@@ -851,10 +842,8 @@ void CIIPDoc::OnAdaboostNext()
 		}
 	}
 
-	//2.2 h_t에 대한 알파값 획득
 	minClassifier.alpha = 0.5 * log((1 + minClassifier.error) / (minClassifier.error));
 
-	//2.3 가중치 업데이트
 	double totalWeight = 0;
 	for (int i = 0; i < 16; i++)
 	{
@@ -862,18 +851,15 @@ void CIIPDoc::OnAdaboostNext()
 		totalWeight += weight[i];
 	}
 
-	//가중치 초기화
 	for (int i = 0; i < 16; i++)
 	{
 		weight[i] /= totalWeight;
 	}
 
-	//찾아낸 분류기를 리스트에 저장
 	classifierList[turn] = minClassifier;
 
-	turn++;//학습된 횟수 증가
+	turn++;
 
-	//3. 최종 분류기 결과 도출
 	double errorRate = AdaboostResult();
 
 	UpdateAllViews(NULL);
@@ -920,5 +906,245 @@ void CIIPDoc::OnAdaboosttest()
 		}
 	}
 
+	UpdateAllViews(NULL);
+}
+
+
+void CIIPDoc::OnPrewitt()
+{
+	static int maskX[3][3] = { -1, 0, 1,-1, 0, 1,-1, 0, 1 };
+	static int maskY[3][3] = { -1, -1, -1, 0, 0, 0, 1, 1, 1 };
+	int amplitude;
+	m_Threshold = 130; 
+	
+	for (int y = 1; y < height; y++)
+	{
+		for (int x = 1; x < width; x++)
+		{
+			int sumX = 0;
+			int sumY = 0;
+			for (int by = 0; by < 3; by++)
+			{
+				for (int bx = 0; bx < 3; bx++)
+				{
+					sumX += maskX[by][bx] * m_InImage[(y + by - 1)*width + x + bx - 1];
+					sumY += maskY[by][bx] * m_InImage[(y + by - 1)*width + x + bx - 1];
+				}
+			}
+		
+			amplitude = (int)sqrt((double)sumX * sumX + sumY * sumY);
+			//amplitude = abs(sumX) + abs(sumY); // 방법2
+
+			//if (amplitude > 255) m_OutImage[y*width + x] = 255;
+			//else if (amplitude < 0) m_OutImage[y*width + x] = 0;
+			//else m_OutImage[y*width + x] = (unsigned char)amplitude;
+
+			if (amplitude > m_Threshold) m_OutImage[y*width + x] = 255;
+			else m_OutImage[y*width + x] = 0;
+		}
+	}
+	UpdateAllViews(NULL);
+}
+
+void CIIPDoc::OnSobel()
+{
+	static int maskX[3][3] = { -1, 0, 1,-2, 0, 2,-1, 0, 1 };
+	static int maskY[3][3] = { -1, -2, -1, 0, 0, 0, 1, 2, 1 };
+	int amplitude;
+	m_Threshold = 130;
+
+	for (int y = 1; y < height; y++)
+	{
+		for (int x = 1; x < width; x++)
+		{
+			int sumX = 0;
+			int sumY = 0;
+			for (int by = 0; by < 3; by++)
+			{
+				for (int bx = 0; bx < 3; bx++)
+				{
+					sumX += maskX[by][bx] * m_InImage[(y + by - 1)*width + x + bx - 1];
+					sumY += maskY[by][bx] * m_InImage[(y + by - 1)*width + x + bx - 1];
+				}
+			}
+
+			amplitude = (int)sqrt((double)sumX * sumX + sumY * sumY);
+			//amplitude = abs(sumX) + abs(sumY); // 방법2
+
+			//if (amplitude > 255) m_OutImage[y*width + x] = 255;
+			//else if (amplitude < 0) m_OutImage[y*width + x] = 0;
+			//else m_OutImage[y*width + x] = (unsigned char)amplitude;
+
+			if (amplitude > m_Threshold) m_OutImage[y*width + x] = 255;
+			else m_OutImage[y*width + x] = 0;
+		}
+	}
+	UpdateAllViews(NULL);
+}
+
+
+void CIIPDoc::OnDerivativeofgaussian()
+{
+	const double PI = 3.14159;
+	const double sigma = 1.0; 
+	int y, x, r, c;
+	int M = (int)(6.0 * sigma) + 1;
+	if (M % 2 == 0) M = M + 1;
+	int center = (int)M / 2;
+	int scale = 10;
+	int amplitude;
+	double **MaskX = new double*[M];
+	double **MaskY = new double*[M];
+	for (int i = 0; i < M; i++) {
+		MaskX[i] = new double[M];
+		MaskY[i] = new double[M];
+	}
+	for (y = -center; y <= center; y++) {
+		for (x = -center; x <= center; x++) {
+			MaskX[y + center][x + center] = scale * (-x * exp(-(x * x + y * y) /
+				(2.0 *
+					sigma * sigma)) / (2.0 * PI * sigma * sigma * sigma *
+						sigma));
+			MaskY[y + center][x + center] = scale * (-y * exp(-(x * x + y * y) /
+				(2.0 *
+					sigma * sigma)) / (2.0 * PI * sigma * sigma * sigma *
+						sigma));
+		}
+	}
+	for (y = 0; y < height; y++) for (x = 0; x < width; x++) m_OutImage[y*width + x] = 0;
+	for (y = center; y < height - center; y++) {
+		for (x = center; x < width - center; x++) {
+			int sumX = 0;
+			int sumY = 0;
+			for (r = 0; r < M; r++) {
+				for (c = 0; c < M; c++) {
+					sumX +=
+						MaskX[r][c] * m_InImage[(y + r - (int)(M / 2))*width + x + c - (int)(M / 2)];
+					sumY +=
+						MaskY[r][c] * m_InImage[(y + r - (int)(M / 2))*width + x + c - (int)(M / 2)];
+				}
+			}
+			amplitude = (int)sqrt((double)sumX * sumX + sumY * sumY);
+			if (amplitude > 255) m_OutImage[y*width + x] = 255;
+			else if (amplitude < 0) m_OutImage[y*width + x] = 0;
+			else m_OutImage[y*width + x] = (unsigned char)amplitude;
+		}
+	}
+	delete[] MaskX;
+	delete[] MaskY;
+	UpdateAllViews(NULL);
+}
+
+
+void CIIPDoc::OnZoomin()
+{
+	double scale = 1.6; 
+	int X_max = (int)(256 * scale); 
+	int Y_max = (int)(256 * scale); 
+	double x, y;
+	int x_org, y_org; 
+	unsigned char *ZoomImage;
+	ZoomImage = new unsigned char[Y_max*X_max];
+	for (int y_new = 0; y_new < Y_max; y_new++)
+	{
+		for (int x_new = 0; x_new < X_max; x_new++)
+		{
+			x = x_new / scale;
+			y = y_new / scale;
+			x_org = (int)(x + 0.5);
+			y_org = (int)(y + 0.5);
+			if (x_org < 0 || x_org > 255 || y_org < 0 || y_org > 255)
+			{
+				ZoomImage[y_new*X_max + x_new] = 0;
+			}
+			else
+				ZoomImage[y_new*X_max + x_new] = m_InImage[y_org*width + x_org];
+		}
+	}
+	for (int i = 0; i < 256; i++)
+	{
+		for (int j = 0; j < 256; j++)
+		{
+			m_OutImage[i*width + j] = ZoomImage[i*X_max + j];
+		}
+	}
+	delete[] ZoomImage; 
+	UpdateAllViews(NULL);
+}
+
+
+void CIIPDoc::OnZoomout()
+{
+	double scale = 0.7; 
+	int X_max = (int)(256 * scale); 
+	int Y_max = (int)(256 * scale); 
+	double x, y; 
+	int x_org, y_org;
+	unsigned char *ZoomImage;
+	
+	ZoomImage = new unsigned char[Y_max*X_max];
+	for (int y_new = 0; y_new < Y_max; y_new++)
+	{
+		for (int x_new = 0; x_new < X_max; x_new++)
+		{
+			x = x_new / scale;
+			y = y_new / scale;
+	
+			x_org = (int)(x + 0.5);
+			y_org = (int)(y + 0.5);
+	
+			if (x_org < 0 || x_org > 255 || y_org < 0 || y_org > 255)
+			{
+				ZoomImage[y_new*X_max + x_new] = 0;
+			}
+	
+			else
+				ZoomImage[y_new*X_max + x_new] = m_InImage[y_org*width + x_org];
+		}
+	}
+	
+	for (int i = 0; i < Y_max; i++)
+	{
+		for (int j = 0; j < X_max; j++)
+		{
+			m_OutImage[i *width + j] = ZoomImage[i*X_max + j];
+		}
+	}
+	delete[] ZoomImage;
+	UpdateAllViews(NULL);
+}
+
+
+void CIIPDoc::OnRotation()
+{
+	double rotationAngle = 135; 
+	int x_center = 128;
+	int y_center = 128;
+	double rotationAngleRad = (rotationAngle*3.14159265 / 180);
+	double cosValue, sinValue;
+	double x, y;
+	int x_org, y_org;
+	for (int y_new = 0; y_new < 256; y_new++)
+	{
+		for (int x_new = 0; x_new < 256; x_new++)
+		{
+			cosValue = cos(rotationAngleRad);
+			sinValue = sin(rotationAngleRad);
+			
+			x = cosValue * (x_new - x_center) + sinValue * (y_new - y_center) + x_center;
+			y = -sinValue * (x_new - x_center) + cosValue * (y_new - y_center) + y_center;
+			
+			x_org = (int)(x + 0.5);
+			y_org = (int)(y + 0.5);
+			
+			if (x_org < 0 || x_org > 255 || y_org < 0 || y_org > 255)
+			{
+				m_OutImage[y_new *width + x_new] = 0;
+			}
+			
+			else
+				m_OutImage[y_new *width + x_new] = m_InImage[y_org *width + x_org];
+		}
+	}
 	UpdateAllViews(NULL);
 }

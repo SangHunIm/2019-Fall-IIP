@@ -57,13 +57,21 @@
 #define ID_AdaBoost_Init                32796
 #define ID_Adaboost_Next                32797
 #define ID_AdaboostTest                 32798
+#define ID_32799                        32799
+#define ID_Prewitt                      32800
+#define ID_Sobel                        32801
+#define ID_Derivativeofgaussian         32802
+#define ID_32803                        32803
+#define ID_Zoomin                       32804
+#define ID_Zoomout                      32805
+#define ID_Rotation                     32806
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        310
-#define _APS_NEXT_COMMAND_VALUE         32799
+#define _APS_NEXT_COMMAND_VALUE         32807
 #define _APS_NEXT_CONTROL_VALUE         1000
 #define _APS_NEXT_SYMED_VALUE           310
 #endif

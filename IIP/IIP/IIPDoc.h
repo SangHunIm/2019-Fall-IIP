@@ -71,4 +71,10 @@ public:
 	double AdaboostResult();
 	afx_msg void OnAdaboostNext();
 	afx_msg void OnAdaboosttest();
+	afx_msg void OnPrewitt();
+	afx_msg void OnSobel();
+	afx_msg void OnDerivativeofgaussian();
+	afx_msg void OnZoomin();
+	afx_msg void OnZoomout();
+	afx_msg void OnRotation();
 };
