@@ -83,4 +83,8 @@ public:
 	afx_msg void OnBinclose();
 	afx_msg void OnGraydilate();
 	afx_msg void OnGrayeros();
+	afx_msg void OnHarriscorner();
+	afx_msg void OnMad();
+	unsigned char m_RefImage[20][20];
+	afx_msg void OnMadsurface();
 };

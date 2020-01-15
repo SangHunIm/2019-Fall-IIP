@@ -23,7 +23,8 @@ int main()
 	points1.push_back(Point2f(223, 86));
 	points1.push_back(Point2f(212, 69));
 	points1.push_back(Point2f(67, 291));
-	calcOpticalFlowPyrLK(gray1, gray2, points1, points2, isFound, error, Size(5, 5), 3, TermCriteria(CV_TERMCRIT_ITER | CV_TERMCRIT_EPS, 20, 0.3));
+	calcOpticalFlowPyrLK(gray1, gray2, points1, points2, isFound, error, 
+		Size(5, 5), 3, TermCriteria(CV_TERMCRIT_ITER | CV_TERMCRIT_EPS, 20, 0.3));
 	for (int i = 0; i < COUNT; i++)
 	{
 		if (isFound[i])

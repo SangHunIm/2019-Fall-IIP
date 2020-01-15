@@ -70,6 +70,14 @@ void CIIPView::OnDraw(CDC* pDC)
 			pDC->SetPixel(j + pDoc->width + 50, i, RGB(OutVal, OutVal, OutVal));
 		}
 	}
+	for (int i = 0; i < 20; i++)
+	{
+		for (int j = 0; j < 20; j++)
+		{
+			unsigned char refVal = pDoc->m_RefImage[i][j];
+			pDC->SetPixel(j, i + 266, RGB(refVal, refVal, refVal));
+		}
+	}
 }
 
 

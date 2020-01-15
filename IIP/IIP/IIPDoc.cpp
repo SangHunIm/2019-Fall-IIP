@@ -47,6 +47,9 @@ BEGIN_MESSAGE_MAP(CIIPDoc, CDocument)
 	ON_COMMAND(ID_BinClose, &CIIPDoc::OnBinclose)
 	ON_COMMAND(ID_GrayDilate, &CIIPDoc::OnGraydilate)
 	ON_COMMAND(ID_GrayEros, &CIIPDoc::OnGrayeros)
+	ON_COMMAND(ID_Harriscorner, &CIIPDoc::OnHarriscorner)
+	ON_COMMAND(ID_Mad, &CIIPDoc::OnMad)
+	ON_COMMAND(ID_MadSurface, &CIIPDoc::OnMadsurface)
 END_MESSAGE_MAP()
 
 
@@ -342,27 +345,27 @@ void CIIPDoc::OnGonzalez()
 
 	T = (min + max) / 2;
 
-	int Diff = 5; //새롭게 계산된 임계값과 이전임계값과의 차이에 대한 초기값
+	int Diff = 5; 
 	while (Diff >= 1)
 	{
-		// 그룹 1에 속한 화소 집합의 평균계산
+		
 		int nSum = 0, nCnt = 0;
-		// nCnt: 그룹 1의 전체 화소수
+	
 		for (int i = 0; i < T; i++) {
 			nSum += hist[i] * i;
 			nCnt += hist[i];
 		}
-		double Mu_1 = (double)(nSum / nCnt); // 그룹 1의 밝기값 평균
-		// 그룹 2에 속한 화소 집합의 평균계산
+		double Mu_1 = (double)(nSum / nCnt); 
+		
 		nSum = 0, nCnt = 0;
-		// nCnt: 그룹 2의 전체 화소수
+		
 		for (int i = T; i < 256; i++)
 		{
 			nSum += hist[i] * i;
 			nCnt += hist[i];
 		}
-		double Mu_2 = (double)(nSum / nCnt); // 그룹 2의 밝기값 평균
-		// 두 화소 그룹의 밝기값 평균을 이용한 임계값 결정
+		double Mu_2 = (double)(nSum / nCnt);
+		
 		int T_Last = (int)((Mu_1 + Mu_2) / 2);
 		Diff = abs(T - T_Last);
 		T = T_Last;
@@ -1409,6 +1412,173 @@ void CIIPDoc::OnGrayeros()
 				}
 			}
 			m_OutImage[y*width + x] = min;
+		}
+	}
+	UpdateAllViews(NULL);
+}
+
+
+void CIIPDoc::OnHarriscorner()
+{
+	int maskX[3][3] = { 1, 0, -1, 2, 0, -2, 1, 0, -1 };
+	int maskY[3][3] = { 1, 2, 1, 0, 0, 0, -1, -2, -1 };
+
+	int dxImage[256][256];
+	int dyImage[256][256];
+
+	for (int y = 1; y < 256 - 1; y++)
+	{
+		for (int x = 1; x < 256 - 1; x++)
+		{
+			int value = 0;
+			for (int by = 0; by < 3; by++)
+			{
+				for (int bx = 0; bx < 3; bx++)
+				{
+					value += maskX[by][bx] * m_InImage[(y + by - 1)*width + (x + bx - 1)];
+				}
+			}
+			dxImage[y][x] = value;
+		}
+	}
+	for (int y = 1; y < 256 - 1; y++)
+	{
+		for (int x = 1; x < 256 - 1; x++)
+		{
+			int value = 0;
+			for (int by = 0; by < 3; by++)
+			{
+				for (int bx = 0; bx < 3; bx++)
+				{
+					value += maskY[by][bx] * m_InImage[(y + by - 1)*width + (x + bx - 1)];
+				}
+			}
+			dyImage[y][x] = value;
+		}
+	}
+
+	int wSize = 5; 
+	for (int y = wSize / 2; y < 256 - wSize / 2; y++)
+	{
+		for (int x = wSize / 2; x < 256 - wSize / 2; x++)
+		{
+			double a = 0, b = 0, c = 0, d = 0;
+			for (int wy = 0; wy < wSize; wy++)
+			{
+				for (int wx = 0; wx < wSize; wx++)
+				{
+					int dx = dxImage[y + wy - wSize / 2][x + wx - wSize / 2];
+					int dy = dyImage[y + wy - wSize / 2][x + wx - wSize / 2];
+					a += dx * dx;
+					b += dx * dy;
+					c += dx * dy;
+					d += dy * dy;
+				}
+					}
+			
+			double aplusd = (a + d);
+			double root = sqrt(aplusd * aplusd - 4 * (a * d - b * c));
+			double lambda1 = (aplusd + root) / 2;
+			double lambda2 = (aplusd - root) / 2;
+			int value = (int)(min(lambda1, lambda2) * 0.001); 
+			if (value > 255) 
+				value = 255;
+			m_OutImage[y *width + x] = value;
+		}
+	}
+	UpdateAllViews(NULL);
+}
+
+
+void CIIPDoc::OnMad()
+{
+	CFileDialog dlg(TRUE, _T("레퍼런스 이미지 로드"), NULL, OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST, _T("20 by 20 raw 파일 | *.bmp", this));
+			if (dlg.DoModal() == IDOK)
+			{
+				CString str = dlg.GetPathName();
+				CFile file;
+				file.Open(str, CFile::modeRead);
+				CArchive ar(&file, CArchive::load);
+				ar.Read(m_RefImage, file.GetLength());
+				file.Close();
+			}
+	const int refWidth = 20;
+	const int refHeight = 20;
+	int minValue = -1;
+	int minX = -1;
+	int minY = -1;
+	for (int y = 0; y < 256 - refHeight; y++)
+	{
+		for (int x = 0; x < 256 - refWidth; x++)
+		{
+			int sum = 0;
+			for (int by = 0; by < refHeight; by++)
+			{
+				for (int bx = 0; bx < refWidth; bx++)
+				{
+					sum += abs(m_RefImage[by][bx] - m_InImage[(y + by) *width + (x + bx)]);
+				}
+			}
+			if (minValue > sum || minValue == -1)
+			{
+				minValue = sum;
+				minX = x;
+				minY = y;
+			}
+		}
+	}
+	for (int y = 0; y < 256; y++)
+	{
+		for (int x = 0; x < 256; x++)
+		{
+			m_OutImage[y*width + x] = m_InImage[y*width + x];
+		}
+	}
+	for (int y = minY; y < minY + refHeight; y++)
+	{
+		m_OutImage[y*width + minX] = 255;
+		m_OutImage[y*width + minX + refWidth] = 255;
+	}
+	for (int x = minX; x < minX + refWidth; x++)
+	{
+		m_OutImage[minY*width + x] = 255;
+		m_OutImage[(minY + refHeight)*width + x] = 255;
+	}
+	UpdateAllViews(NULL);
+}
+
+
+void CIIPDoc::OnMadsurface()
+{
+	CFileDialog dlg(TRUE, _T("레퍼런스 이미지 로드"), NULL, OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST, _T("20 by 20 raw 파일 | *.bmp", this));
+	if (dlg.DoModal() == IDOK)
+	{
+		CString str = dlg.GetPathName();
+		CFile file;
+		file.Open(str, CFile::modeRead);
+		CArchive ar(&file, CArchive::load);
+		ar.Read(m_RefImage, file.GetLength());
+		file.Close();
+	}
+
+	const int refWidth = 20;
+	const int refHeight = 20;
+	for (int y = 0; y < 256 - refHeight; y++)
+	{
+		for (int x = 0; x < 256 - refWidth; x++)
+		{
+			int sum = 0;
+			for (int by = 0; by < refHeight; by++)
+			{
+				for (int bx = 0; bx < refWidth; bx++)
+				{
+					sum += abs(m_RefImage[by][bx] - m_InImage[(y + by)*width + x + bx]);
+				}
+			}
+			int r = sum * 0.01; 
+			if (r > 255) r = 255;
+			else if (r < 0) r = 0;
+			m_OutImage[(y + refHeight / 2) * width + x + refWidth / 2] = 255 - r;
 		}
 	}
 	UpdateAllViews(NULL);
